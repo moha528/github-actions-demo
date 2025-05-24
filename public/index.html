@@ -3,58 +3,196 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Todo API Demo</title>
+  <title>Todo App</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 2em; }
-    h1 { color: #2c3e50; }
-    .todo-list { margin-top: 1em; }
-    .todo-item { margin-bottom: 0.5em; }
-    input, button { padding: 0.5em; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .todo-container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .todo-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .todo-list {
+      list-style: none;
+      padding: 0;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      gap: 10px;
+    }
+    .todo-item:last-child {
+      border-bottom: none;
+    }
+    .todo-text {
+      flex: 1;
+    }
+    .todo-actions {
+      display: flex;
+      gap: 5px;
+    }
+    .edit-mode input {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .completed {
+      text-decoration: line-through;
+      color: #888;
+    }
   </style>
 </head>
 <body>
-  <h1>Todo API Demo</h1>
-  <p>Cette application est une démonstration d'une API REST Node.js avec Express, testée et déployée via GitHub Actions sur un VPS.</p>
-  <h2>Ajouter une tâche</h2>
-  <form id="addTodoForm">
-    <input type="text" id="taskInput" placeholder="Nouvelle tâche" required>
-    <button type="submit">Ajouter</button>
-  </form>
-  <h2>Liste des tâches</h2>
-  <div class="todo-list" id="todoList"></div>
+  <div class="todo-container">
+    <h1>Todo List</h1>
+    <form class="todo-form" id="todoForm">
+      <input type="text" id="todoInput" placeholder="Add a new todo..." required>
+      <button type="submit">Add</button>
+    </form>
+    <ul class="todo-list" id="todoList"></ul>
+  </div>
+
   <script>
+    const todoForm = document.getElementById('todoForm');
+    const todoInput = document.getElementById('todoInput');
+    const todoList = document.getElementById('todoList');
+    let editingId = null;
+
+    // Fetch all todos
     async function fetchTodos() {
-      const res = await fetch('/todos');
-      const todos = await res.json();
-      const list = document.getElementById('todoList');
-      list.innerHTML = '';
-      todos.forEach((todo, idx) => {
-        const div = document.createElement('div');
-        div.className = 'todo-item';
-        div.textContent = todo.task || JSON.stringify(todo);
-        // Ajout d'un bouton de suppression
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Supprimer';
-        delBtn.onclick = async () => {
-          await fetch('/todos/' + idx, { method: 'DELETE' });
-          fetchTodos();
-        };
-        div.appendChild(delBtn);
-        list.appendChild(div);
+      const response = await fetch('/todos');
+      const todos = await response.json();
+      displayTodos(todos);
+    }
+
+    // Display todos in the list
+    function displayTodos(todos) {
+      todoList.innerHTML = '';
+      todos.forEach((todo, index) => {
+        const li = document.createElement('li');
+        li.className = 'todo-item';
+        
+        if (editingId === index) {
+          li.innerHTML = `
+            <input type="text" value="${todo.text || ''}" class="edit-input">
+            <button onclick="saveEdit(${index})">Save</button>
+            <button onclick="cancelEdit()">Cancel</button>
+          `;
+        } else {
+          li.innerHTML = `
+            <span class="todo-text ${todo.completed ? 'completed' : ''}">${todo.text || ''}</span>
+            <div class="todo-actions">
+              <button onclick="toggleComplete(${index})">${todo.completed ? 'Undo' : 'Complete'}</button>
+              <button onclick="startEdit(${index})">Edit</button>
+              <button onclick="deleteTodo(${index})">Delete</button>
+            </div>
+          `;
+        }
+        todoList.appendChild(li);
       });
     }
-    document.getElementById('addTodoForm').onsubmit = async (e) => {
+
+    // Add new todo
+    todoForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const task = document.getElementById('taskInput').value;
+      const text = todoInput.value.trim();
+      if (!text) return;
+
       await fetch('/todos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task })
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text })
       });
-      document.getElementById('taskInput').value = '';
+
+      todoInput.value = '';
       fetchTodos();
-    };
-    // Ajout d'une route DELETE côté API (à faire côté serveur)
+    });
+
+    // Delete todo
+    async function deleteTodo(index) {
+      await fetch(`/todos/${index}`, {
+        method: 'DELETE'
+      });
+      fetchTodos();
+    }
+
+    // Start editing
+    function startEdit(index) {
+      editingId = index;
+      fetchTodos();
+    }
+
+    // Cancel editing
+    function cancelEdit() {
+      editingId = null;
+      fetchTodos();
+    }
+
+    // Save edit
+    async function saveEdit(index) {
+      const input = document.querySelector('.edit-input');
+      const text = input.value.trim();
+      
+      if (text) {
+        await fetch(`/todos/${index}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text })
+        });
+      }
+      
+      editingId = null;
+      fetchTodos();
+    }
+
+    // Toggle complete status
+    async function toggleComplete(index) {
+      const todos = await (await fetch('/todos')).json();
+      const todo = todos[index];
+      await fetch(`/todos/${index}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ completed: !todo.completed })
+      });
+      fetchTodos();
+    }
+
+    // Initial load
     fetchTodos();
   </script>
 </body>

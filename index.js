@@ -28,6 +28,17 @@ app.delete('/todos/:id', (req, res) => {
   res.json(removed[0]);
 });
 
+// Route PUT pour modifier une tâche par son index
+app.put('/todos/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id) || id < 0 || id >= todos.length) {
+    return res.status(404).json({ error: 'Todo not found' });
+  }
+  const updatedTodo = req.body;
+  todos[id] = { ...todos[id], ...updatedTodo };
+  res.json(todos[id]);
+});
+
 const PORT = process.env.PORT || 3000;
 
 if (require.main === module) {
