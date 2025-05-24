@@ -29,10 +29,10 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /home/user/todo-api
+            cd /home/ubuntu/apps/github-actions-demo
             git pull origin main
             npm install
             pm2 restart index.js 
