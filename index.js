@@ -1,6 +1,10 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 app.use(express.json());
+
+// Servir le dossier public
+app.use(express.static(path.join(__dirname, 'public')));
 
 let todos = [];
 

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo API Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    h1 { color: #2c3e50; }
+    .todo-list { margin-top: 1em; }
+    .todo-item { margin-bottom: 0.5em; }
+    input, button { padding: 0.5em; }
+  </style>
+</head>
+<body>
+  <h1>Todo API Demo</h1>
+  <p>Cette application est une démonstration d'une API REST Node.js avec Express, testée et déployée via GitHub Actions sur un VPS.</p>
+  <h2>Ajouter une tâche</h2>
+  <form id="addTodoForm">
+    <input type="text" id="taskInput" placeholder="Nouvelle tâche" required>
+    <button type="submit">Ajouter</button>
+  </form>
+  <h2>Liste des tâches</h2>
+  <div class="todo-list" id="todoList"></div>
+  <script>
+    async function fetchTodos() {
+      const res = await fetch('/todos');
+      const todos = await res.json();
+      const list = document.getElementById('todoList');
+      list.innerHTML = '';
+      todos.forEach((todo, idx) => {
+        const div = document.createElement('div');
+        div.className = 'todo-item';
+        div.textContent = todo.task || JSON.stringify(todo);
+        // Ajout d'un bouton de suppression
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Supprimer';
+        delBtn.onclick = async () => {
+          await fetch('/todos/' + idx, { method: 'DELETE' });
+          fetchTodos();
+        };
+        div.appendChild(delBtn);
+        list.appendChild(div);
+      });
+    }
+    document.getElementById('addTodoForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const task = document.getElementById('taskInput').value;
+      await fetch('/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task })
+      });
+      document.getElementById('taskInput').value = '';
+      fetchTodos();
+    };
+    // Ajout d'une route DELETE côté API (à faire côté serveur)
+    fetchTodos();
+  </script>
+</body>
+</html> 
