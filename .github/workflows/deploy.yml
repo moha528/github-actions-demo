@@ -35,4 +35,4 @@ jobs:
             cd /home/ubuntu/apps/github-actions-demo
             git pull origin main
             npm install
-            pm2 start-or-restart index.js --name "todo-app"
+            pm2 restart todo-app
